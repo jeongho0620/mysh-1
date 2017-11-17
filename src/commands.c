@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
+#include <unistd.h>
+#include <wait.h>
+#include <sys/types.h>
 #include "commands.h"
 #include "built_in.h"
 
@@ -50,14 +52,34 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
     } else if (strcmp(com->argv[0], "exit") == 0) {
       return 1;
     } else {
-      fprintf(stderr, "%s: command not found\n", com->argv[0]);
-      return -1;
-    }
-  }
-
+	int pid;
+	if((pid=fork())<0)
+	printf("fork failed \n");
+	else if(pid==0)
+	{
+		if(strcmp(com->argv[0],"ls")==0||strcmp(com->argv[0],"cat")==0)
+		{
+			char path[]="/bin/";
+			strcat(path,com->argv[0]);
+			com->argv[0]=path;
+			execv(com->argv[0],com->argv);
+		}
+		else if(strcmp(com->argv[0],"vim")==0)
+		{
+			char path[]="/usr/bin/";
+			strcat(path,com->argv[0]);
+			com->argv[0]=path;
+			execv(com->argv[0],com->argv);
+		}
+		else
+		execv(com->argv[0],com->argv);
+		}
+	else
+	wait(&pid);
+	}
   return 0;
 }
-
+}
 void free_commands(int n_commands, struct single_command (*commands)[512])
 {
   for (int i = 0; i < n_commands; ++i) {
